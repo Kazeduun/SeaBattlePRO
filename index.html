@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BattleSea</title>
+    <!-- ПОДКЛЮЧАЕМ SDK ТЕЛЕГРАМА -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap');
+        
+        :root {
+            --bg: #e0f2fe; --card-bg: #ffffff; --primary: #38bdf8; --primary-dark: #0284c7;
+            --accent: #fbbf24; --ship-color: #1e40af; --water: #bae6fd;
+            --rank-gold: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            --text-dark: #1e293b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+
+        body { 
+            font-family: 'Nunito', sans-serif; margin: 0; height: 100vh; 
+            display: flex; justify-content: center; align-items: center; 
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); 
+            overflow: hidden; color: var(--text-dark);
+        }
+
+        /* ПУЗЫРЬКИ */
+        .bubble { position: absolute; background: rgba(255, 255, 255, 0.4); border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 50%; z-index: 0; animation: float 8s linear infinite; }
+        @keyframes float { 0% { transform: translateY(110vh) translateX(0); } 100% { transform: translateY(-20vh) translateX(50px); } }
+        
+        .screen { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; padding: 10px; justify-content: center; z-index: 10; }
+        .screen.active { display: flex; }
+
+        /* ИНДИКАТОР МОНЕТ */
+        .coin-balance { position: absolute; top: 15px; right: 15px; background: white; padding: 8px 15px; border-radius: 20px; font-weight: 900; color: #92400e; box-shadow: 0 4px 0px #fcd34d; display: flex; align-items: center; gap: 5px; z-index: 100; border: 2px solid #fbbf24; }
+        
+        /* ЛОГОТИП */
+        .logo-plate { background: white; padding: 25px 60px; border-radius: 40px; border: 8px solid var(--primary); box-shadow: 0 12px 0px #93c5fd; margin-bottom: 25px; transform: rotate(-1deg); position: relative; }
+        .logo-text { font-size: 2.8rem; color: var(--primary-dark); margin: 0; text-transform: uppercase; text-shadow: 3px 3px 0 white; }
+        
+        .rank-clicker { position: absolute; left: -25px; top: -35px; background: var(--rank-gold); padding: 8px 18px; border-radius: 25px; border: 4px solid white; box-shadow: 0 6px 12px rgba(218, 165, 32, 0.4); cursor: pointer; z-index: 100; }
+        .rank-clicker span { color: white; font-weight: 900; font-size: 0.9rem; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        .mascot-container { position: absolute; right: -45px; top: -55px; cursor: pointer; z-index: 110; }
+        .mascot { font-size: 60px; filter: drop-shadow(0 5px 0 rgba(0,0,0,0.1)); }
+        .bubble-speech { position: absolute; background: white; padding: 10px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; color: var(--primary-dark); width: 140px; top: -10px; left: 35px; display: none; border: 3px solid var(--primary); z-index: 200; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        
+        /* КАРЬЕРА (БОЛЬШАЯ ТАБЛИЦА) */
+        .career-card { background: white; width: 92%; max-width: 420px; border-radius: 40px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 8px solid var(--bg); max-height: 90vh; overflow-y: auto; }
+        .progress-container { background: #f1f5f9; height: 35px; border-radius: 20px; margin: 20px 0; overflow: hidden; position: relative; border: 3px solid #e2e8f0; }
+        .progress-bar { background: var(--rank-gold); height: 100%; width: 0%; transition: width 1s ease; }
+        
+        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; margin-bottom: 8px; border-radius: 22px; font-size: 1rem; font-weight: 800; color: #64748b; background: #f8fafc; border: 2px solid transparent; transition: 0.3s; }
+        .rank-item.active { background: #f0f9ff; color: var(--primary-dark); border-color: var(--primary); transform: scale(1.02); }
+        .rank-item.completed { color: #059669; background: #ecfdf5; }
+
+        /* МАГАЗИН */
+        .shop-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 15px; font-weight: 900; cursor: pointer; background: #f1f5f9; color: #64748b; text-transform: uppercase; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .shop-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 2px solid #f1f5f9; }
+        .item-preview { width: 35px; height: 35px; border-radius: 10px; border: 2px solid #e2e8f0; }
+        .buy-btn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 12px; font-weight: 900; color: #92400e; cursor: pointer; font-size: 0.85rem; box-shadow: 0 3px 0 #d97706; }
+        .buy-btn:active { transform: translateY(2px); box-shadow: none; }
+        .buy-btn.selected { background: #e2e8f0; color: #64748b; box-shadow: none; cursor: default; }
+
+        /* ИГРА */
+        .board-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .board-label { font-weight: 900; color: var(--primary-dark); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; background: white; padding: 4px 15px; border-radius: 12px; box-shadow: 0 3px 0 #cbd5e1; }
+        .ships-left { height: 25px; margin-bottom: 5px; font-size: 1.1rem; display: flex; gap: 2px; }
+        .ships-left span { animation: wave-ship 3s ease-in-out infinite; display: inline-block; }
+        @keyframes wave-ship { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        
+        .board { display: grid; grid-template-columns: repeat(10, 32px); grid-template-rows: repeat(10, 32px); gap: 2px; background: rgba(255,255,255,0.4); padding: 6px; border-radius: 18px; }
+        .cell { width: 32px; height: 32px; background: var(--water); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+        .cell.ship { background: var(--ship-color); box-shadow: inset 0 -3px rgba(0,0,0,0.2); }
+        .cell.hit { background: #f87171 !important; color: white; z-index: 2; }
+        .cell.sunk { background: #334155 !important; color: #cbd5e1; }
+        .cell.miss::after { content: ""; width: 6px; height: 6px; background: white; border-radius: 50%; }
+
+        .btn-play { width: 100%; padding: 18px; font-size: 1.5rem; font-weight: 900; background: var(--accent); color: #92400e; border: none; border-radius: 25px; box-shadow: 0 8px 0 #d97706; cursor: pointer; text-transform: uppercase; }
+        .btn-play:active { transform: translateY(6px); box-shadow: 0 2px 0 #d97706; }
+        
+        .diff-btn { background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 12px; font-weight: 900; cursor: pointer; color: #64748b; font-size: 0.7rem; border: 2px solid #e2e8f0; text-transform: uppercase; }
+        .diff-btn.active { background: var(--primary); color: white; border-color: var(--primary-dark); }
+
+        .floating-text { position: absolute; pointer-events: none; font-weight: 900; font-size: 0.9rem; color: var(--accent); text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 100; animation: floatUp 0.8s forwards; }
+        @keyframes floatUp { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+        
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 450px) {
+            .board { grid-template-columns: repeat(10, 28px); grid-template-rows: repeat(10, 28px); }
+            .cell { width: 28px; height: 28px; }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="bubble-container"></div>
+    <div class="coin-balance">💰 <span id="coin-count">0</span></div>
+
+    <!-- КАРЬЕРА -->
+    <div id="career-modal" class="modal" onclick="closeCareer()">
+        <div class="career-card" onclick="event.stopPropagation()">
+            <h2 style="color: var(--primary-dark); margin:0;">БОЕВОЙ ПУТЬ</h2>
+            <div id="career-rank-title" style="font-size: 1.4rem; font-weight: 900; color: var(--accent); margin-top:5px;">ЮНГА</div>
+            <div class="progress-container">
+                <div id="career-progress-bar" class="progress-bar"></div>
+                <div id="career-progress-text" style="position:absolute; width:100%; top:6px; font-weight:900; font-size:0.9rem; color:#1e293b;"></div>
+            </div>
+            <div id="ranks-list-ui"></div>
+            <button class="btn-play" style="font-size: 1rem; margin-top: 20px; padding: 12px;" onclick="closeCareer()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <!-- МАГАЗИН -->
+    <div id="shop-modal" class="modal" onclick="closeShop()">
+        <div class="career-card" onclick="event.stopPropagation()" style="max-width: 380px;">
+            <h2 style="color: var(--primary-dark); margin-bottom:15px;">МАГАЗИН</h2>
+            <div class="shop-tabs">
+                <button id="tab-skins" class="tab-btn active" onclick="switchTab('skins')">СКИНЫ</button>
+                <button id="tab-coins" class="tab-btn" onclick="switchTab('coins')">ВАЛЮТА</button>
+            </div>
+            <div id="shop-content"></div>
+            <div id="payment-loader" style="display:none;">
+                <div class="loader"></div>
+                <p id="txt-processing" style="font-weight:900; color:var(--primary-dark);">ОФОРМЛЕНИЕ ПОКУПКИ...</p>
+            </div>
+            <button class="btn-play" style="font-size: 1rem; margin-top: 20px; padding: 12px;" onclick="closeShop()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <!-- МЕНЮ -->
+    <div id="screen-menu" class="screen active">
+        <div class="logo-plate">
+            <div class="rank-clicker" onclick="openCareer()">
+                <span id="menu-rank-name">ЮНГА</span>
+            </div>
+            <h1 class="logo-text">BattleSea</h1>
+            <div class="mascot-container" onclick="mascotSpeak()">
+                <div id="speech" class="bubble-speech"></div>
+                <div class="mascot">🦀</div>
+            </div>
+        </div>
+        <div class="career-card" style="box-shadow: 0 15px 0px #93c5fd; padding: 30px;">
+            <button id="btn-start" class="btn-play" onclick="startGame()">В БОЙ!</button>
+            <button id="btn-shop" class="btn-play" style="background: #38bdf8; box-shadow: 0 8px 0 #0284c7; color: white; margin-top: 15px;" onclick="openShop()">МАГАЗИН</button>
+            <div style="margin-top: 20px;">
+                <div style="font-weight:900; color:#94a3b8; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Выберите сложность</div>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button id="d-easy" class="diff-btn" onclick="selectDiff('easy')">ЛЕГКО</button>
+                    <button id="d-normal" class="diff-btn active" onclick="selectDiff('normal')">НОРМА</button>
+                    <button id="d-hard" class="diff-btn" onclick="selectDiff('hard')">ПРОФИ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН ИГРЫ -->
+    <div id="screen-game" class="screen">
+        <button class="btn-play" style="width: auto; padding: 8px 18px; font-size: 0.8rem; margin-bottom: 15px;" onclick="location.reload()">← В МЕНЮ</button>
+        <div id="game-status" style="font-weight: 900; color: var(--primary-dark); margin-bottom: 10px; font-size: 1.2rem;">ТВОЙ ХОД</div>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+            <div class="board-wrapper">
+                <div class="board-label">Твой флот</div>
+                <div id="player-ships-ui" class="ships-left"></div>
+                <div id="player-board" class="board"></div>
+            </div>
+            <div class="board-wrapper">
+                <div class="board-label">Враг</div>
+                <div id="enemy-ships-ui" class="ships-left"></div>
+                <div id="enemy-board" class="board"></div>
+            </div>
+        </div>
+        <button class="btn-play" style="width: auto; padding: 10px 20px; font-size: 0.9rem; margin-top: 20px; background:#f87171; box-shadow: 0 6px 0 #dc2626; color:white;" onclick="location.reload()">СДАТЬСЯ</button>
+    </div>
+
+    <!-- ФИНАЛ -->
+    <div id="modal-end" class="modal">
+        <div class="career-card" style="max-width: 300px;">
+            <h2 id="modal-title">ПОБЕДА!</h2>
+            <p id="modal-reward" style="font-weight:900; color:var(--accent); font-size:1.2rem;"></p>
+            <button class="btn-play" onclick="location.reload()">ОК</button>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'https://old-points-stand.loca.lt'; // Замени после запуска Cloudflare
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let wins = parseInt(localStorage.getItem('sea-battle-wins')) || 0;
+        let coins = parseInt(localStorage.getItem('sea-coins')) || 0;
+        let ownedSkins = JSON.parse(localStorage.getItem('sea-skins')) || ['default'];
+        let activeSkin = localStorage.getItem('sea-active-skin') || 'default';
+        let comboCount = 0; let difficulty = 'normal';
+
+        const ranks = [
+            { id: 'yunga', min: 0, next: 5, name: "ЮНГА", icon: "🎖️" },
+            { id: 'matros', min: 5, next: 15, name: "МАТРОС", icon: "⚓" },
+            { id: 'michman', min: 15, next: 35, name: "МИЧМАН", icon: "🔱" },
+            { id: 'kapitan', min: 35, next: 80, name: "КАПИТАН", icon: "⚔️" },
+            { id: 'admiral', min: 80, next: 999, name: "АДМИРАЛ", icon: "👑" }
+        ];
+
+        const skinsData = [
+            { id: 'default', name: 'МОРСКОЙ', color: '#1e40af', price: 0 },
+            { id: 'gold', name: 'ЗОЛОТОЙ', color: '#fbbf24', price: 150 },
+            { id: 'emerald', name: 'ИЗУМРУД', color: '#10b981', price: 300 },
+            { id: 'lava', name: 'ЛАВА', color: '#ef4444', price: 500 },
+            { id: 'ghost', name: 'ПРИЗРАК', color: 'rgba(56, 189, 248, 0.4)', price: 1000 },
+            { id: 'amethyst', name: 'АМЕТИСТ', color: '#9333ea', price: 1500 }
+        ];
+
+        const currencyPacks = [
+            { id: 'pouch_100', name: 'МЕШОЧЕК', amount: 100, stars: 25 },
+            { id: 'chest_500', name: 'СУНДУК', amount: 500, stars: 100 },
+            { id: 'vault_1200', name: 'СОКРОВИЩА', amount: 1200, stars: 250 }
+        ];
+
+        function updateUI() {
+            document.getElementById('coin-count').innerText = coins;
+            const currentSkin = skinsData.find(s => s.id === activeSkin) || skinsData[0];
+            document.documentElement.style.setProperty('--ship-color', currentSkin.color);
+            const rank = [...ranks].reverse().find(r => wins >= r.min);
+            document.getElementById('menu-rank-name').innerText = rank.name;
+        }
+
+        // --- КАРЬЕРА ---
+        function openCareer() {
+            const modal = document.getElementById('career-modal');
+            const currentRank = [...ranks].reverse().find(r => wins >= r.min);
+            const currentIdx = ranks.findIndex(r => r.id === currentRank.id);
+            const current = ranks[currentIdx];
+
+            document.getElementById('career-rank-title').innerText = current.icon + " " + current.name;
+            let percent = current.next < 999 ? Math.min(((wins - current.min) / (current.next - current.min)) * 100, 100) : 100;
+            document.getElementById('career-progress-text').innerText = wins + " / " + current.next;
+            
+            const listUI = document.getElementById('ranks-list-ui'); listUI.innerHTML = '';
+            ranks.forEach((r, i) => {
+                let isActive = i === currentIdx;
+                let isComp = wins >= r.min && !isActive;
+                let isLocked = wins < r.min;
+                listUI.innerHTML += `<div class="rank-item ${isActive ? 'active' : ''} ${isComp ? 'completed' : ''} ${isLocked ? 'locked' : ''}">
+                    <span>${r.icon} ${r.name}</span>
+                    <span>${isComp ? '✅' : (isLocked ? '🔒 ' + r.min : '⭐')}</span>
+                </div>`;
+            });
+            modal.style.display = 'flex';
+            setTimeout(() => { document.getElementById('career-progress-bar').style.width = percent + "%"; }, 100);
+        }
+        function closeCareer() { document.getElementById('career-modal').style.display = 'none'; }
+
+        // --- МАГАЗИН ---
+        let currentTab = 'skins';
+        function switchTab(t) { currentTab = t; renderShop(); }
+        function renderShop() {
+            const cont = document.getElementById('shop-content');
+            document.getElementById('tab-skins').className = `tab-btn ${currentTab === 'skins' ? 'active' : ''}`;
+            document.getElementById('tab-coins').className = `tab-btn ${currentTab === 'coins' ? 'active' : ''}`;
+            cont.innerHTML = ''; document.getElementById('payment-loader').style.display = 'none'; cont.style.display = 'block';
+            
+            if (currentTab === 'skins') {
+                skinsData.forEach(skin => {
+                    const isOwned = ownedSkins.includes(skin.id);
+                    const isSelected = activeSkin === skin.id;
+                    cont.innerHTML += `<div class="shop-item">
+                        <div class="item-preview" style="background:${skin.color}"></div>
+                        <div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left;">${skin.name}</div>
+                        <button class="buy-btn ${isSelected ? 'selected' : ''}" onclick="buySkin('${skin.id}', ${skin.price})">
+                            ${isSelected ? 'ВЫБРАНО' : (isOwned ? 'ВЫБРАТЬ' : '💰'+skin.price)}
+                        </button>
+                    </div>`;
+                });
+            } else {
+                currencyPacks.forEach(p => {
+                    cont.innerHTML += `<div class="shop-item">
+                        <div style="font-size:1.5rem">💰</div>
+                        <div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left;">${p.name}<br><small>+${p.amount}</small></div>
+                        <button class="buy-btn" onclick="realTelegramPurchase('${p.id}', ${p.amount})">⭐️ ${p.stars}</button>
+                    </div>`;
+                });
+            }
+        }
+
+        function buySkin(id, price) {
+            if (ownedSkins.includes(id)) { 
+                activeSkin = id; 
+                localStorage.setItem('sea-active-skin', activeSkin);
+            } else if (coins >= price) {
+                coins -= price; 
+                ownedSkins.push(id); 
+                activeSkin = id;
+                localStorage.setItem('sea-coins', coins);
+                localStorage.setItem('sea-skins', JSON.stringify(ownedSkins));
+                localStorage.setItem('sea-active-skin', activeSkin);
+            } else { 
+                mascotSpeak("Мало монет!"); 
+                return; 
+            }
+            updateUI(); 
+            renderShop();
+        }
+
+        async function realTelegramPurchase(productId, amount) {
+            document.getElementById('shop-content').style.display = 'none';
+            document.getElementById('payment-loader').style.display = 'block';
+            try {
+                const response = await fetch(`${SERVER_URL}/create-stars-invoice`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: tg.initDataUnsafe.user?.id, product_id: productId })
+                });
+                const data = await response.json();
+                if (data.invoice_url) {
+                    tg.openInvoice(data.invoice_url, (status) => {
+                        if (status === 'paid') finalizeTransaction(amount);
+                        else cancelTransaction();
+                    });
+                } else throw new Error();
+            } catch (e) { setTimeout(() => finalizeTransaction(amount), 2000); }
+        }
+
+        function finalizeTransaction(amount) {
+            coins += amount; localStorage.setItem('sea-coins', coins); updateUI();
+            document.getElementById('payment-loader').style.display = 'none';
+            document.getElementById('shop-content').style.display = 'block';
+            mascotSpeak("Успешно!"); renderShop();
+        }
+        function cancelTransaction() { document.getElementById('payment-loader').style.display = 'none'; document.getElementById('shop-content').style.display = 'block'; mascotSpeak("Отмена"); }
+        function openShop() { renderShop(); document.getElementById('shop-modal').style.display = 'flex'; }
+        function closeShop() { document.getElementById('shop-modal').style.display = 'none'; }
+
+        // --- ЛОГИКА ИГРЫ ---
+        let player, enemy, isPlayerTurn, gameOver, aiStack = [];
+        function selectDiff(d) { difficulty = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active')); document.getElementById('d-'+d).classList.add('active'); }
+        function startGame() { document.getElementById('screen-menu').classList.remove('active'); document.getElementById('screen-game').classList.add('active'); player = buildBoard('player-board', false); enemy = buildBoard('enemy-board', true); updateShipUI(); isPlayerTurn = true; gameOver = false; comboCount = 0; }
+        
+        function buildBoard(id, isEnemy) {
+            const el = document.getElementById(id); el.innerHTML = '';
+            const state = { grid: Array(100).fill(0), ships: [], cells: [] };
+            [4, 3, 3, 2, 2, 2, 1, 1, 1, 1].forEach(size => {
+                let placed = false;
+                while(!placed) {
+                    const h = Math.random() < 0.5, x = Math.floor(Math.random() * (h ? 11-size : 10)), y = Math.floor(Math.random() * (h ? 10 : 11-size));
+                    const pos = []; for(let i=0; i<size; i++) pos.push((y + (h?0:i)) * 10 + (x + (h?i:0)));
+                    if(pos.every(p => { const py = Math.floor(p/10), px = p%10; for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) { const ny=py+dy, nx=px+dx; if(ny>=0 && ny<10 && nx>=0 && nx<10 && state.grid[ny*10+nx]) return false; } return true; })) {
+                        pos.forEach(p => state.grid[p] = 1); state.ships.push({ pos, hits: 0, sunk: false }); placed = true;
+                    }
+                }
+            });
+            for(let i=0; i<100; i++) {
+                const c = document.createElement('div'); c.className = 'cell' + (!isEnemy && state.grid[i] ? ' ship' : '');
+                c.onclick = () => isEnemy && isPlayerTurn && handleShot(i);
+                el.appendChild(c); state.cells.push(c);
+            }
+            return state;
+        }
+
+        function handleShot(i) {
+            if(enemy.grid[i] > 1 || gameOver) return;
+            isPlayerTurn = false;
+            if(processAction(enemy, i)) {
+                comboCount++; coins += 1; updateUI();
+                showFloatText(enemy.cells[i], comboCount > 1 ? `x${comboCount} 🔥` : `+1💰`);
+                if(!checkWin()) isPlayerTurn = true;
+            } else {
+                comboCount = 0; document.getElementById('game-status').innerText = "ВРАГ ХОДИТ...";
+                setTimeout(enemyTurn, 400);
+            }
+        }
+
+        function enemyTurn() {
+            if(gameOver) return;
+            let i; do { i = Math.floor(Math.random()*100); } while(player.grid[i] > 1);
+            if(processAction(player, i)) { if(!checkWin()) setTimeout(enemyTurn, 600); }
+            else { isPlayerTurn = true; document.getElementById('game-status').innerText = "ТВОЙ ХОД"; }
+        }
+
+        function processAction(board, i) {
+            if(board.grid[i] === 1) {
+                board.grid[i] = 3; const s = board.ships.find(ship => ship.pos.includes(i)); s.hits++;
+                if(s.hits === s.pos.length) {
+                    s.sunk = true;
+                    s.pos.forEach(p => { board.cells[p].className = 'cell sunk'; board.cells[p].innerText = '⚓'; markMiss(board, p); });
+                    if(board === enemy) showFloatText(board.cells[i], "УБИТ!");
+                } else { board.cells[i].className = 'cell hit'; board.cells[i].innerText = '💢'; }
+                updateShipUI(); return true;
+            }
+            board.grid[i] = 2; board.cells[i].className = 'cell miss'; return false;
+        }
+
+        function markMiss(board, i) {
+            const y=Math.floor(i/10), x=i%10;
+            for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) { const ny=y+dy, nx=x+dx; if(ny>=0&&ny<10&&nx>=0&&nx<10 && board.grid[ny*10+nx] === 0) { board.grid[ny*10+nx] = 2; board.cells[ny*10+nx].className = 'cell miss'; } }
+        }
+
+        function updateShipUI() {
+            const r = (st, id) => { let h = ''; st.ships.forEach(s => { if(!s.sunk) h += '<span>🚢</span>'; }); document.getElementById(id).innerHTML = h || '💀'; };
+            r(player, 'player-ships-ui'); r(enemy, 'enemy-ships-ui');
+        }
+
+        function checkWin() {
+            const win = enemy.ships.every(s => s.sunk), lose = player.ships.every(s => s.sunk);
+            if(win || lose) {
+                gameOver = true;
+                if(win) { wins++; coins += 10; localStorage.setItem('sea-battle-wins', wins); localStorage.setItem('sea-coins', coins); }
+                document.getElementById('modal-end').style.display = 'flex';
+                document.getElementById('modal-title').innerText = win ? "ПОБЕДА!" : "ПРОИГРЫШ";
+                document.getElementById('modal-reward').innerText = win ? "+10 МОНЕТ 💰" : "ПОПРОБУЙ СНОВА";
+                updateUI(); return true;
+            }
+            return false;
+        }
+
+        function showFloatText(el, txt) { const f = document.createElement('div'); f.className = 'floating-text'; f.innerText = txt; el.appendChild(f); setTimeout(() => f.remove(), 800); }
+        function mascotSpeak() { const s = document.getElementById('speech'); s.innerText = ["Вперёд!", "Удачи!", "Целься!"][Math.floor(Math.random()*3)]; s.style.display = 'block'; setTimeout(() => s.style.display = 'none', 2000); }
+        setInterval(() => {
+            const b = document.createElement('div'); b.className = 'bubble'; b.style.width = b.style.height = Math.random()*20+10+'px';
+            b.style.left = Math.random()*100+'vw'; b.style.animationDuration = Math.random()*4+4+'s';
+            document.getElementById('bubble-container').appendChild(b); setTimeout(() => b.remove(), 8000);
+        }, 2000);
+        updateUI();
+    </script>
+</body>
+</html>

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BattleSea</title>
-    <!-- ПОДКЛЮЧАЕМ SDK ТЕЛЕГРАМА -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap');
@@ -19,23 +18,20 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
 
         body { 
-            font-family: 'Nunito', sans-serif; margin: 0; height: 100vh; 
+            font-family: 'Nunito', sans-serif; margin: 0; height: 100vh; width: 100vw;
             display: flex; justify-content: center; align-items: center; 
             background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); 
             overflow: hidden; color: var(--text-dark);
         }
 
-        /* ПУЗЫРЬКИ */
         .bubble { position: absolute; background: rgba(255, 255, 255, 0.4); border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 50%; z-index: 0; animation: float 8s linear infinite; }
         @keyframes float { 0% { transform: translateY(110vh) translateX(0); } 100% { transform: translateY(-20vh) translateX(50px); } }
         
         .screen { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; padding: 10px; justify-content: center; z-index: 10; }
         .screen.active { display: flex; }
 
-        /* ИНДИКАТОР МОНЕТ */
         .coin-balance { position: absolute; top: 15px; right: 15px; background: white; padding: 8px 15px; border-radius: 20px; font-weight: 900; color: #92400e; box-shadow: 0 4px 0px #fcd34d; display: flex; align-items: center; gap: 5px; z-index: 100; border: 2px solid #fbbf24; }
         
-        /* ЛОГОТИП */
         .logo-plate { background: white; padding: 25px 60px; border-radius: 40px; border: 8px solid var(--primary); box-shadow: 0 12px 0px #93c5fd; margin-bottom: 25px; transform: rotate(-1deg); position: relative; }
         .logo-text { font-size: 2.8rem; color: var(--primary-dark); margin: 0; text-transform: uppercase; text-shadow: 3px 3px 0 white; }
         
@@ -46,28 +42,26 @@
         .mascot { font-size: 60px; filter: drop-shadow(0 5px 0 rgba(0,0,0,0.1)); }
         .bubble-speech { position: absolute; background: white; padding: 10px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; color: var(--primary-dark); width: 140px; top: -10px; left: 35px; display: none; border: 3px solid var(--primary); z-index: 200; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 
-        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        /* МОДАЛКИ ИСПРАВЛЕНЫ (всегда по центру) */
+        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .career-card { background: white; width: 100%; max-width: 420px; border-radius: 40px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 8px solid var(--bg); max-height: 90vh; overflow-y: auto; }
         
-        /* КАРЬЕРА (БОЛЬШАЯ ТАБЛИЦА) */
-        .career-card { background: white; width: 92%; max-width: 420px; border-radius: 40px; padding: 30px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 8px solid var(--bg); max-height: 90vh; overflow-y: auto; }
+        /* БОЕВОЙ ПУТЬ ПРОФЕССИОНАЛЬНЫЙ */
         .progress-container { background: #f1f5f9; height: 35px; border-radius: 20px; margin: 20px 0; overflow: hidden; position: relative; border: 3px solid #e2e8f0; }
         .progress-bar { background: var(--rank-gold); height: 100%; width: 0%; transition: width 1s ease; }
-        
-        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; margin-bottom: 8px; border-radius: 22px; font-size: 1rem; font-weight: 800; color: #64748b; background: #f8fafc; border: 2px solid transparent; transition: 0.3s; }
+        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; margin-bottom: 8px; border-radius: 22px; font-size: 1rem; font-weight: 800; color: #64748b; background: #f8fafc; border: 2px solid transparent; }
         .rank-item.active { background: #f0f9ff; color: var(--primary-dark); border-color: var(--primary); transform: scale(1.02); }
         .rank-item.completed { color: #059669; background: #ecfdf5; }
 
-        /* МАГАЗИН */
         .shop-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 15px; font-weight: 900; cursor: pointer; background: #f1f5f9; color: #64748b; text-transform: uppercase; }
         .tab-btn.active { background: var(--primary); color: white; }
         .shop-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 2px solid #f1f5f9; }
         .item-preview { width: 35px; height: 35px; border-radius: 10px; border: 2px solid #e2e8f0; }
         .buy-btn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 12px; font-weight: 900; color: #92400e; cursor: pointer; font-size: 0.85rem; box-shadow: 0 3px 0 #d97706; }
-        .buy-btn:active { transform: translateY(2px); box-shadow: none; }
         .buy-btn.selected { background: #e2e8f0; color: #64748b; box-shadow: none; cursor: default; }
 
-        /* ИГРА */
+        /* ИГРОВОЕ ПОЛЕ */
         .board-wrapper { display: flex; flex-direction: column; align-items: center; }
         .board-label { font-weight: 900; color: var(--primary-dark); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; background: white; padding: 4px 15px; border-radius: 12px; box-shadow: 0 3px 0 #cbd5e1; }
         .ships-left { height: 25px; margin-bottom: 5px; font-size: 1.1rem; display: flex; gap: 2px; }
@@ -89,13 +83,10 @@
 
         .floating-text { position: absolute; pointer-events: none; font-weight: 900; font-size: 0.9rem; color: var(--accent); text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 100; animation: floatUp 0.8s forwards; }
         @keyframes floatUp { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
-        
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (max-width: 450px) {
-            .board { grid-template-columns: repeat(10, 28px); grid-template-rows: repeat(10, 28px); }
-            .cell { width: 28px; height: 28px; }
+            .board { grid-template-columns: repeat(10, 29px); grid-template-rows: repeat(10, 29px); }
+            .cell { width: 29px; height: 29px; }
         }
     </style>
 </head>
@@ -129,7 +120,7 @@
             <div id="shop-content"></div>
             <div id="payment-loader" style="display:none;">
                 <div class="loader"></div>
-                <p id="txt-processing" style="font-weight:900; color:var(--primary-dark);">ОФОРМЛЕНИЕ ПОКУПКИ...</p>
+                <p style="font-weight:900; color:var(--primary-dark); font-size: 0.9rem;">ОФОРМЛЕНИЕ ПОКУПКИ...</p>
             </div>
             <button class="btn-play" style="font-size: 1rem; margin-top: 20px; padding: 12px;" onclick="closeShop()">ЗАКРЫТЬ</button>
         </div>
@@ -148,8 +139,8 @@
             </div>
         </div>
         <div class="career-card" style="box-shadow: 0 15px 0px #93c5fd; padding: 30px;">
-            <button id="btn-start" class="btn-play" onclick="startGame()">В БОЙ!</button>
-            <button id="btn-shop" class="btn-play" style="background: #38bdf8; box-shadow: 0 8px 0 #0284c7; color: white; margin-top: 15px;" onclick="openShop()">МАГАЗИН</button>
+            <button class="btn-play" onclick="startGame()">В БОЙ!</button>
+            <button class="btn-play" style="background: #38bdf8; box-shadow: 0 8px 0 #0284c7; color: white; margin-top: 15px;" onclick="openShop()">МАГАЗИН</button>
             <div style="margin-top: 20px;">
                 <div style="font-weight:900; color:#94a3b8; font-size:0.65rem; text-transform:uppercase; margin-bottom:8px;">Выберите сложность</div>
                 <div style="display: flex; gap: 8px; justify-content: center;">
@@ -190,7 +181,9 @@
     </div>
 
     <script>
-        const SERVER_URL = 'https://metal-pumas-learn.loca.lt'; // Замени после запуска Cloudflare
+        // --- ВСТАВЬ СЮДА ССЫЛКУ ОТ CLOUDFLARE ---
+        const SERVER_URL = 'https://metal-pumas-learn.loca.lt'; 
+
         const tg = window.Telegram.WebApp;
         tg.expand();
 
@@ -225,23 +218,19 @@
 
         function updateUI() {
             document.getElementById('coin-count').innerText = coins;
-            const currentSkin = skinsData.find(s => s.id === activeSkin) || skinsData[0];
+            const currentSkin = skinsData.find(s => s.id === activeSkin);
             document.documentElement.style.setProperty('--ship-color', currentSkin.color);
             const rank = [...ranks].reverse().find(r => wins >= r.min);
             document.getElementById('menu-rank-name').innerText = rank.name;
         }
 
-        // --- КАРЬЕРА ---
         function openCareer() {
             const modal = document.getElementById('career-modal');
             const currentRank = [...ranks].reverse().find(r => wins >= r.min);
             const currentIdx = ranks.findIndex(r => r.id === currentRank.id);
-            const current = ranks[currentIdx];
-
-            document.getElementById('career-rank-title').innerText = current.icon + " " + current.name;
-            let percent = current.next < 999 ? Math.min(((wins - current.min) / (current.next - current.min)) * 100, 100) : 100;
-            document.getElementById('career-progress-text').innerText = wins + " / " + current.next;
-            
+            document.getElementById('career-rank-title').innerText = currentRank.icon + " " + currentRank.name;
+            let percent = currentRank.next < 999 ? Math.min(((wins - currentRank.min) / (currentRank.next - currentRank.min)) * 100, 100) : 100;
+            document.getElementById('career-progress-text').innerText = wins + " / " + currentRank.next;
             const listUI = document.getElementById('ranks-list-ui'); listUI.innerHTML = '';
             ranks.forEach((r, i) => {
                 let isActive = i === currentIdx;
@@ -257,7 +246,6 @@
         }
         function closeCareer() { document.getElementById('career-modal').style.display = 'none'; }
 
-        // --- МАГАЗИН ---
         let currentTab = 'skins';
         function switchTab(t) { currentTab = t; renderShop(); }
         function renderShop() {
@@ -265,53 +253,24 @@
             document.getElementById('tab-skins').className = `tab-btn ${currentTab === 'skins' ? 'active' : ''}`;
             document.getElementById('tab-coins').className = `tab-btn ${currentTab === 'coins' ? 'active' : ''}`;
             cont.innerHTML = ''; document.getElementById('payment-loader').style.display = 'none'; cont.style.display = 'block';
-            
             if (currentTab === 'skins') {
                 skinsData.forEach(skin => {
                     const isOwned = ownedSkins.includes(skin.id);
                     const isSelected = activeSkin === skin.id;
-                    cont.innerHTML += `<div class="shop-item">
-                        <div class="item-preview" style="background:${skin.color}"></div>
-                        <div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left;">${skin.name}</div>
-                        <button class="buy-btn ${isSelected ? 'selected' : ''}" onclick="buySkin('${skin.id}', ${skin.price})">
-                            ${isSelected ? 'ВЫБРАНО' : (isOwned ? 'ВЫБРАТЬ' : '💰'+skin.price)}
-                        </button>
-                    </div>`;
+                    cont.innerHTML += `<div class="shop-item"><div class="item-preview" style="background:${skin.color}"></div><div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left; font-size:0.8rem;">${skin.name}</div><button class="buy-btn ${isSelected ? 'selected' : ''}" onclick="buySkin('${skin.id}', ${skin.price})">${isSelected ? 'ВЫБРАНО' : (isOwned ? 'ВЫБРАТЬ' : '💰'+skin.price)}</button></div>`;
                 });
             } else {
                 currencyPacks.forEach(p => {
-                    cont.innerHTML += `<div class="shop-item">
-                        <div style="font-size:1.5rem">💰</div>
-                        <div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left;">${p.name}<br><small>+${p.amount}</small></div>
-                        <button class="buy-btn" onclick="realTelegramPurchase('${p.id}', ${p.amount})">⭐️ ${p.stars}</button>
-                    </div>`;
+                    cont.innerHTML += `<div class="shop-item"><div style="font-size:1.2rem">💰</div><div style="font-weight:900; flex-grow:1; margin-left:10px; text-align:left; font-size:0.8rem;">${p.name}<br><small>+${p.amount}</small></div><button class="buy-btn" onclick="realTelegramPurchase('${p.id}', ${p.amount})">⭐️ ${p.stars}</button></div>`;
                 });
             }
-        }
-
-        function buySkin(id, price) {
-            if (ownedSkins.includes(id)) { 
-                activeSkin = id; 
-                localStorage.setItem('sea-active-skin', activeSkin);
-            } else if (coins >= price) {
-                coins -= price; 
-                ownedSkins.push(id); 
-                activeSkin = id;
-                localStorage.setItem('sea-coins', coins);
-                localStorage.setItem('sea-skins', JSON.stringify(ownedSkins));
-                localStorage.setItem('sea-active-skin', activeSkin);
-            } else { 
-                mascotSpeak("Мало монет!"); 
-                return; 
-            }
-            updateUI(); 
-            renderShop();
         }
 
         async function realTelegramPurchase(productId, amount) {
             document.getElementById('shop-content').style.display = 'none';
             document.getElementById('payment-loader').style.display = 'block';
             try {
+                // РЕАЛЬНЫЙ ЗАПРОС К СЕРВЕРУ
                 const response = await fetch(`${SERVER_URL}/create-stars-invoice`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -321,10 +280,13 @@
                 if (data.invoice_url) {
                     tg.openInvoice(data.invoice_url, (status) => {
                         if (status === 'paid') finalizeTransaction(amount);
-                        else cancelTransaction();
+                        else closeShop();
                     });
                 } else throw new Error();
-            } catch (e) { setTimeout(() => finalizeTransaction(amount), 2000); }
+            } catch (e) {
+                // Если сервер не отвечает - симуляция для тиктока
+                setTimeout(() => finalizeTransaction(amount), 2000);
+            }
         }
 
         function finalizeTransaction(amount) {
@@ -333,15 +295,16 @@
             document.getElementById('shop-content').style.display = 'block';
             mascotSpeak("Успешно!"); renderShop();
         }
-        function cancelTransaction() { document.getElementById('payment-loader').style.display = 'none'; document.getElementById('shop-content').style.display = 'block'; mascotSpeak("Отмена"); }
-        function openShop() { renderShop(); document.getElementById('shop-modal').style.display = 'flex'; }
-        function closeShop() { document.getElementById('shop-modal').style.display = 'none'; }
+        function mascotSpeak() { const s = document.getElementById('speech'); s.innerText = ["Вперёд!", "Удачи!"][Math.floor(Math.random()*2)]; s.style.display = 'block'; setTimeout(() => s.style.display = 'none', 2000); }
+        function buySkin(id, price) {
+            if (ownedSkins.includes(id)) { activeSkin = id; localStorage.setItem('sea-active-skin', activeSkin); }
+            else if (coins >= price) { coins -= price; ownedSkins.push(id); activeSkin = id; localStorage.setItem('sea-coins', coins); localStorage.setItem('sea-skins', JSON.stringify(ownedSkins)); localStorage.setItem('sea-active-skin', activeSkin); }
+            updateUI(); renderShop();
+        }
 
-        // --- ЛОГИКА ИГРЫ ---
         let player, enemy, isPlayerTurn, gameOver, aiStack = [];
         function selectDiff(d) { difficulty = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active')); document.getElementById('d-'+d).classList.add('active'); }
-        function startGame() { document.getElementById('screen-menu').classList.remove('active'); document.getElementById('screen-game').classList.add('active'); player = buildBoard('player-board', false); enemy = buildBoard('enemy-board', true); updateShipUI(); isPlayerTurn = true; gameOver = false; comboCount = 0; }
-        
+        function startGame() { document.getElementById('screen-menu').classList.remove('active'); document.getElementById('screen-game').classList.add('active'); player = buildBoard('player-board', false); enemy = buildBoard('enemy-board', true); updateShipUI(); isPlayerTurn = true; gameOver = false; }
         function buildBoard(id, isEnemy) {
             const el = document.getElementById(id); el.innerHTML = '';
             const state = { grid: Array(100).fill(0), ships: [], cells: [] };
@@ -362,50 +325,37 @@
             }
             return state;
         }
-
         function handleShot(i) {
             if(enemy.grid[i] > 1 || gameOver) return;
             isPlayerTurn = false;
-            if(processAction(enemy, i)) {
-                comboCount++; coins += 1; updateUI();
-                showFloatText(enemy.cells[i], comboCount > 1 ? `x${comboCount} 🔥` : `+1💰`);
-                if(!checkWin()) isPlayerTurn = true;
-            } else {
-                comboCount = 0; document.getElementById('game-status').innerText = "ВРАГ ХОДИТ...";
-                setTimeout(enemyTurn, 400);
-            }
+            if(processAction(enemy, i)) { coins += 1; updateUI(); if(!checkWin()) isPlayerTurn = true; }
+            else { document.getElementById('game-status').innerText = "ВРАГ ХОДИТ..."; setTimeout(enemyTurn, 400); }
         }
-
         function enemyTurn() {
             if(gameOver) return;
             let i; do { i = Math.floor(Math.random()*100); } while(player.grid[i] > 1);
             if(processAction(player, i)) { if(!checkWin()) setTimeout(enemyTurn, 600); }
             else { isPlayerTurn = true; document.getElementById('game-status').innerText = "ТВОЙ ХОД"; }
         }
-
         function processAction(board, i) {
             if(board.grid[i] === 1) {
                 board.grid[i] = 3; const s = board.ships.find(ship => ship.pos.includes(i)); s.hits++;
                 if(s.hits === s.pos.length) {
                     s.sunk = true;
                     s.pos.forEach(p => { board.cells[p].className = 'cell sunk'; board.cells[p].innerText = '⚓'; markMiss(board, p); });
-                    if(board === enemy) showFloatText(board.cells[i], "УБИТ!");
                 } else { board.cells[i].className = 'cell hit'; board.cells[i].innerText = '💢'; }
                 updateShipUI(); return true;
             }
             board.grid[i] = 2; board.cells[i].className = 'cell miss'; return false;
         }
-
         function markMiss(board, i) {
             const y=Math.floor(i/10), x=i%10;
             for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) { const ny=y+dy, nx=x+dx; if(ny>=0&&ny<10&&nx>=0&&nx<10 && board.grid[ny*10+nx] === 0) { board.grid[ny*10+nx] = 2; board.cells[ny*10+nx].className = 'cell miss'; } }
         }
-
         function updateShipUI() {
             const r = (st, id) => { let h = ''; st.ships.forEach(s => { if(!s.sunk) h += '<span>🚢</span>'; }); document.getElementById(id).innerHTML = h || '💀'; };
             r(player, 'player-ships-ui'); r(enemy, 'enemy-ships-ui');
         }
-
         function checkWin() {
             const win = enemy.ships.every(s => s.sunk), lose = player.ships.every(s => s.sunk);
             if(win || lose) {
@@ -418,9 +368,8 @@
             }
             return false;
         }
-
-        function showFloatText(el, txt) { const f = document.createElement('div'); f.className = 'floating-text'; f.innerText = txt; el.appendChild(f); setTimeout(() => f.remove(), 800); }
-        function mascotSpeak() { const s = document.getElementById('speech'); s.innerText = ["Вперёд!", "Удачи!", "Целься!"][Math.floor(Math.random()*3)]; s.style.display = 'block'; setTimeout(() => s.style.display = 'none', 2000); }
+        function openShop() { renderShop(); document.getElementById('shop-modal').style.display = 'flex'; }
+        function closeShop() { document.getElementById('shop-modal').style.display = 'none'; }
         setInterval(() => {
             const b = document.createElement('div'); b.className = 'bubble'; b.style.width = b.style.height = Math.random()*20+10+'px';
             b.style.left = Math.random()*100+'vw'; b.style.animationDuration = Math.random()*4+4+'s';
